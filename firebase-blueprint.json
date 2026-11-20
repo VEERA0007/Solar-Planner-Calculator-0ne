@@ -1,0 +1,418 @@
+{
+  "entities": {
+    "UscHistoryEntry": {
+      "title": "UscHistoryEntry",
+      "description": "Shared cross-browser DISCOM USC lookup history record with latest 12-month usage and billing averages.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Deterministic sanitized document identifier derived from USC number and state ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "uscNumber": {
+          "type": "string",
+          "description": "Normalized DISCOM Unique Service Connection (USC) number.",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-/. ]+$"
+        },
+        "consumerName": {
+          "type": "string",
+          "description": "Optional consumer label returned by DISCOM portal (non-PII display alias).",
+          "maxLength": 120
+        },
+        "discomShortName": {
+          "type": "string",
+          "description": "Short name of the regional DISCOM (e.g. TGSPDCL, APEPDCL).",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "discomId": {
+          "type": "string",
+          "description": "Optional canonical DISCOM identifier.",
+          "maxLength": 60
+        },
+        "stateId": {
+          "type": "string",
+          "description": "Canonical state identifier.",
+          "enum": ["telangana", "andhra_pradesh", "odissa", "chandigarh"],
+          "maxLength": 32
+        },
+        "stateName": {
+          "type": "string",
+          "description": "Display name of the state.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "sanctionedLoadKw": {
+          "type": "number",
+          "description": "Optional sanctioned or contracted load in kW."
+        },
+        "avgMonthlyUnits": {
+          "type": "number",
+          "description": "Latest 12-billed-months average monthly electricity usage in kWh."
+        },
+        "avgMonthlyBill": {
+          "type": "number",
+          "description": "Latest 12-billed-months average monthly electricity bill in INR."
+        },
+        "monthsCount": {
+          "type": "number",
+          "description": "Total number of monthly records stored in the entry (0 to 24)."
+        },
+        "verifiedMonthsCount": {
+          "type": "number",
+          "description": "Count of DISCOM portal-verified monthly records (0 to 24)."
+        },
+        "lastFetchedAtIst": {
+          "type": "string",
+          "description": "Human-readable IST sync timestamp string.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "timestampIso": {
+          "type": "string",
+          "description": "ISO-8601 UTC timestamp string of the latest fetch.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "months": {
+          "type": "array",
+          "description": "Optional bounded list (max 24) of monthly kWh and bill records."
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Visibility scope enabling shared cross-browser reads.",
+          "enum": ["public"],
+          "maxLength": 16
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the verified user who created this shared USC history entry.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable Firestore server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Firestore server last-updated timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "uscNumber",
+        "discomShortName",
+        "stateId",
+        "stateName",
+        "avgMonthlyUnits",
+        "avgMonthlyBill",
+        "monthsCount",
+        "verifiedMonthsCount",
+        "lastFetchedAtIst",
+        "timestampIso",
+        "visibility",
+        "ownerId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InverterPlant": {
+      "title": "InverterPlant",
+      "description": "Non-secret installed solar inverter plant profile and latest synchronized telemetry snapshot.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Deterministic sanitized plant document identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "brand": {
+          "type": "string",
+          "description": "Inverter brand or monitoring platform ecosystem.",
+          "enum": [
+            "solarman",
+            "growatt",
+            "soliscloud",
+            "sungrow",
+            "goodwe",
+            "fronius",
+            "enphase",
+            "custom_bridge"
+          ],
+          "maxLength": 32
+        },
+        "plantName": {
+          "type": "string",
+          "description": "Display name of the installed solar plant (non-PII).",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "stationId": {
+          "type": "string",
+          "description": "Optional monitoring portal station or plant identifier.",
+          "maxLength": 80
+        },
+        "loggerSerial": {
+          "type": "string",
+          "description": "Optional inverter or Wi-Fi data logger serial number.",
+          "maxLength": 80
+        },
+        "installedCapacityKwp": {
+          "type": "number",
+          "description": "Installed solar DC/AC array capacity in kWp (0.1 to 5000)."
+        },
+        "exportTariffInr": {
+          "type": "number",
+          "description": "Grid export feed-in credit rate in INR/kWh (0 to 50)."
+        },
+        "meterMode": {
+          "type": "string",
+          "description": "CT clamp / smart meter detection preference.",
+          "enum": ["auto", "generation_only", "full_meter"],
+          "maxLength": 24
+        },
+        "autoSyncMinutes": {
+          "type": "number",
+          "description": "Automatic cloud polling interval in minutes (0, 5, 15, 30, 60)."
+        },
+        "hasSyncedData": {
+          "type": "boolean",
+          "description": "Whether at least one real generation reading has been synced."
+        },
+        "todayDateKey": {
+          "type": "string",
+          "description": "Calendar date key (YYYY-MM-DD) of the latest synced daily snapshot.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "todayGenKwh": {
+          "type": "number",
+          "description": "Synced solar generation for todayDateKey in kWh."
+        },
+        "livePowerKw": {
+          "type": "number",
+          "description": "Latest reported instantaneous AC output power in kW."
+        },
+        "todayUsageKwh": {
+          "type": "number",
+          "description": "Optional CT/smart-meter daily home consumption in kWh."
+        },
+        "todayExportKwh": {
+          "type": "number",
+          "description": "Optional CT/smart-meter daily grid export in kWh."
+        },
+        "todayImportKwh": {
+          "type": "number",
+          "description": "Optional CT/smart-meter daily grid import in kWh."
+        },
+        "lifetimeKwh": {
+          "type": "number",
+          "description": "Optional cumulative lifetime generation in kWh."
+        },
+        "hasSmartMeter": {
+          "type": "boolean",
+          "description": "Auto-detected flag indicating CT/smart-meter load or grid channels are present."
+        },
+        "syncSource": {
+          "type": "string",
+          "description": "Origin of the latest synced telemetry.",
+          "enum": ["cloud_api", "csv_import", "manual_entry"],
+          "maxLength": 24
+        },
+        "lastSyncedAtIso": {
+          "type": "string",
+          "description": "ISO-8601 UTC timestamp of latest telemetry sync.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "lastSyncedAtIst": {
+          "type": "string",
+          "description": "Human-readable local/IST timestamp of latest telemetry sync.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "statusNote": {
+          "type": "string",
+          "description": "Optional non-secret status summary from the last sync.",
+          "maxLength": 160
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Visibility scope enabling cross-browser viewing of plant telemetry.",
+          "enum": ["public"],
+          "maxLength": 16
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the verified user who registered this plant.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable Firestore server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Firestore server last-updated timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "brand",
+        "plantName",
+        "installedCapacityKwp",
+        "exportTariffInr",
+        "meterMode",
+        "autoSyncMinutes",
+        "hasSyncedData",
+        "todayDateKey",
+        "todayGenKwh",
+        "livePowerKw",
+        "hasSmartMeter",
+        "syncSource",
+        "lastSyncedAtIso",
+        "lastSyncedAtIst",
+        "visibility",
+        "ownerId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InverterDailyLog": {
+      "title": "InverterDailyLog",
+      "description": "Date-keyed daily solar inverter generation and optional CT/smart-meter log entry.",
+      "type": "object",
+      "properties": {
+        "dateKey": {
+          "type": "string",
+          "description": "Calendar date key matching document ID (YYYY-MM-DD).",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "plantId": {
+          "type": "string",
+          "description": "Parent InverterPlant document ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "generationKwh": {
+          "type": "number",
+          "description": "Actual inverter solar energy generated for the day in kWh."
+        },
+        "consumptionKwh": {
+          "type": "number",
+          "description": "Optional CT/smart-meter home consumption in kWh."
+        },
+        "exportKwh": {
+          "type": "number",
+          "description": "Optional grid export energy in kWh."
+        },
+        "importKwh": {
+          "type": "number",
+          "description": "Optional grid import energy in kWh."
+        },
+        "peakPowerKw": {
+          "type": "number",
+          "description": "Optional peak instantaneous AC power reached during the day in kW."
+        },
+        "weatherPotentialKwh": {
+          "type": "number",
+          "description": "Optional weather-based potential generation benchmark for comparison in kWh."
+        },
+        "performanceRatioPct": {
+          "type": "number",
+          "description": "Optional actual vs. potential Performance Ratio percentage."
+        },
+        "hasSmartMeter": {
+          "type": "boolean",
+          "description": "Whether CT/smart-meter channels were present on this day."
+        },
+        "syncSource": {
+          "type": "string",
+          "description": "Sync method that recorded this daily log.",
+          "enum": ["cloud_api", "csv_import", "manual_entry"],
+          "maxLength": 24
+        },
+        "recordedAtIso": {
+          "type": "string",
+          "description": "ISO-8601 UTC timestamp when this daily log was synced.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Visibility scope enabling cross-browser log reads.",
+          "enum": ["public"],
+          "maxLength": 16
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the plant owner who created this daily log.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable Firestore server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Firestore server last-updated timestamp."
+        }
+      },
+      "required": [
+        "dateKey",
+        "plantId",
+        "generationKwh",
+        "hasSmartMeter",
+        "syncSource",
+        "recordedAtIso",
+        "visibility",
+        "ownerId",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/usc_history/{entryId}": {
+      "schema": {
+        "$ref": "#/entities/UscHistoryEntry"
+      },
+      "description": "Shared USC lookup history collection readable across all browsers and screens, with verified-user writes and owner/admin deletion."
+    },
+    "/inverter_plants/{plantId}": {
+      "schema": {
+        "$ref": "#/entities/InverterPlant"
+      },
+      "description": "Solar inverter plant profiles and latest live generation snapshots, readable across browsers with verified owner/admin write control."
+    },
+    "/inverter_plants/{plantId}/daily_logs/{dateKey}": {
+      "schema": {
+        "$ref": "#/entities/InverterDailyLog"
+      },
+      "description": "Date-keyed (YYYY-MM-DD) daily solar inverter generation and optional CT/smart-meter logs protected by parent plant Master Gate ownership checks."
+    }
+  }
+}

@@ -1,0 +1,514 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidDateKey(dateKey) {
+      return dateKey is string && dateKey.size() == 10 && dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'veera.official1997@gmail.com';
+    }
+
+    function isValidStateId(stateId) {
+      return stateId is string &&
+        stateId.size() <= 32 &&
+        stateId in ['telangana', 'andhra_pradesh', 'odissa', 'chandigarh'];
+    }
+
+    function isValidMonthsArray(months) {
+      return months is list &&
+        months.size() <= 24 &&
+        (months.size() == 0 || months[0] is map);
+    }
+
+    function isValidInverterBrand(brand) {
+      return brand is string &&
+        brand.size() <= 32 &&
+        brand in [
+          'solarman',
+          'growatt',
+          'soliscloud',
+          'sungrow',
+          'goodwe',
+          'fronius',
+          'enphase',
+          'custom_bridge'
+        ];
+    }
+
+    function isValidMeterMode(mode) {
+      return mode is string &&
+        mode.size() <= 24 &&
+        mode in ['auto', 'generation_only', 'full_meter'];
+    }
+
+    function isValidSyncSource(source) {
+      return source is string &&
+        source.size() <= 24 &&
+        source in ['cloud_api', 'csv_import', 'manual_entry'];
+    }
+
+    // --- Validation Blueprint for UscHistoryEntry (strictly synced with firebase-blueprint.json) ---
+    function isValidUscHistoryEntry(data, entryId) {
+      return data.keys().hasAll([
+          'id',
+          'uscNumber',
+          'discomShortName',
+          'stateId',
+          'stateName',
+          'avgMonthlyUnits',
+          'avgMonthlyBill',
+          'monthsCount',
+          'verifiedMonthsCount',
+          'lastFetchedAtIst',
+          'timestampIso',
+          'visibility',
+          'ownerId',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'uscNumber',
+          'consumerName',
+          'discomShortName',
+          'discomId',
+          'stateId',
+          'stateName',
+          'sanctionedLoadKw',
+          'avgMonthlyUnits',
+          'avgMonthlyBill',
+          'monthsCount',
+          'verifiedMonthsCount',
+          'lastFetchedAtIst',
+          'timestampIso',
+          'months',
+          'visibility',
+          'ownerId',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.id == entryId &&
+        data.uscNumber is string &&
+        data.uscNumber.size() >= 1 &&
+        data.uscNumber.size() <= 40 &&
+        data.uscNumber.matches('^[a-zA-Z0-9_\\-/. ]+$') &&
+        (!('consumerName' in data) || (data.consumerName is string && data.consumerName.size() <= 120)) &&
+        data.discomShortName is string &&
+        data.discomShortName.size() >= 1 &&
+        data.discomShortName.size() <= 60 &&
+        (!('discomId' in data) || (data.discomId is string && data.discomId.size() <= 60)) &&
+        isValidStateId(data.stateId) &&
+        data.stateName is string &&
+        data.stateName.size() >= 1 &&
+        data.stateName.size() <= 60 &&
+        (!('sanctionedLoadKw' in data) || (data.sanctionedLoadKw is number && data.sanctionedLoadKw >= 0 && data.sanctionedLoadKw <= 10000)) &&
+        data.avgMonthlyUnits is number &&
+        data.avgMonthlyUnits >= 0 &&
+        data.avgMonthlyUnits <= 1000000 &&
+        data.avgMonthlyBill is number &&
+        data.avgMonthlyBill >= 0 &&
+        data.avgMonthlyBill <= 100000000 &&
+        data.monthsCount is number &&
+        data.monthsCount >= 0 &&
+        data.monthsCount <= 24 &&
+        data.verifiedMonthsCount is number &&
+        data.verifiedMonthsCount >= 0 &&
+        data.verifiedMonthsCount <= 24 &&
+        data.lastFetchedAtIst is string &&
+        data.lastFetchedAtIst.size() >= 1 &&
+        data.lastFetchedAtIst.size() <= 60 &&
+        data.timestampIso is string &&
+        data.timestampIso.size() >= 1 &&
+        data.timestampIso.size() <= 40 &&
+        (!('months' in data) || isValidMonthsArray(data.months)) &&
+        data.visibility is string &&
+        data.visibility.size() <= 16 &&
+        data.visibility == 'public' &&
+        isValidId(data.ownerId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isImmutableUscFieldsPreserved() {
+      return incoming().id == existing().id &&
+        incoming().uscNumber == existing().uscNumber &&
+        incoming().stateId == existing().stateId &&
+        incoming().visibility == existing().visibility &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt;
+    }
+
+    // --- Validation Blueprint for InverterPlant (strictly synced with firebase-blueprint.json) ---
+    function isValidInverterPlant(data, plantId) {
+      return data.keys().hasAll([
+          'id',
+          'brand',
+          'plantName',
+          'installedCapacityKwp',
+          'exportTariffInr',
+          'meterMode',
+          'autoSyncMinutes',
+          'hasSyncedData',
+          'todayDateKey',
+          'todayGenKwh',
+          'livePowerKw',
+          'hasSmartMeter',
+          'syncSource',
+          'lastSyncedAtIso',
+          'lastSyncedAtIst',
+          'visibility',
+          'ownerId',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'brand',
+          'plantName',
+          'stationId',
+          'loggerSerial',
+          'installedCapacityKwp',
+          'exportTariffInr',
+          'meterMode',
+          'autoSyncMinutes',
+          'hasSyncedData',
+          'todayDateKey',
+          'todayGenKwh',
+          'livePowerKw',
+          'todayUsageKwh',
+          'todayExportKwh',
+          'todayImportKwh',
+          'lifetimeKwh',
+          'hasSmartMeter',
+          'syncSource',
+          'lastSyncedAtIso',
+          'lastSyncedAtIst',
+          'statusNote',
+          'visibility',
+          'ownerId',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.id == plantId &&
+        isValidInverterBrand(data.brand) &&
+        data.plantName is string &&
+        data.plantName.size() >= 1 &&
+        data.plantName.size() <= 80 &&
+        (!('stationId' in data) || (data.stationId is string && data.stationId.size() <= 80)) &&
+        (!('loggerSerial' in data) || (data.loggerSerial is string && data.loggerSerial.size() <= 80)) &&
+        data.installedCapacityKwp is number &&
+        data.installedCapacityKwp >= 0.1 &&
+        data.installedCapacityKwp <= 5000 &&
+        data.exportTariffInr is number &&
+        data.exportTariffInr >= 0 &&
+        data.exportTariffInr <= 50 &&
+        isValidMeterMode(data.meterMode) &&
+        data.autoSyncMinutes is number &&
+        data.autoSyncMinutes in [0, 5, 15, 30, 60] &&
+        data.hasSyncedData is bool &&
+        isValidDateKey(data.todayDateKey) &&
+        data.todayGenKwh is number &&
+        data.todayGenKwh >= 0 &&
+        data.todayGenKwh <= 100000 &&
+        data.livePowerKw is number &&
+        data.livePowerKw >= 0 &&
+        data.livePowerKw <= 10000 &&
+        (!('todayUsageKwh' in data) || (data.todayUsageKwh is number && data.todayUsageKwh >= 0 && data.todayUsageKwh <= 100000)) &&
+        (!('todayExportKwh' in data) || (data.todayExportKwh is number && data.todayExportKwh >= 0 && data.todayExportKwh <= 100000)) &&
+        (!('todayImportKwh' in data) || (data.todayImportKwh is number && data.todayImportKwh >= 0 && data.todayImportKwh <= 100000)) &&
+        (!('lifetimeKwh' in data) || (data.lifetimeKwh is number && data.lifetimeKwh >= 0 && data.lifetimeKwh <= 100000000)) &&
+        data.hasSmartMeter is bool &&
+        isValidSyncSource(data.syncSource) &&
+        data.lastSyncedAtIso is string &&
+        data.lastSyncedAtIso.size() >= 1 &&
+        data.lastSyncedAtIso.size() <= 40 &&
+        data.lastSyncedAtIst is string &&
+        data.lastSyncedAtIst.size() >= 1 &&
+        data.lastSyncedAtIst.size() <= 60 &&
+        (!('statusNote' in data) || (data.statusNote is string && data.statusNote.size() <= 160)) &&
+        data.visibility is string &&
+        data.visibility.size() <= 16 &&
+        data.visibility == 'public' &&
+        isValidId(data.ownerId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isImmutableInverterPlantPreserved() {
+      return incoming().id == existing().id &&
+        incoming().visibility == existing().visibility &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt;
+    }
+
+    // --- Validation Blueprint for InverterDailyLog (strictly synced with firebase-blueprint.json) ---
+    function isValidInverterDailyLog(data, plantId, dateKey) {
+      return data.keys().hasAll([
+          'dateKey',
+          'plantId',
+          'generationKwh',
+          'hasSmartMeter',
+          'syncSource',
+          'recordedAtIso',
+          'visibility',
+          'ownerId',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'dateKey',
+          'plantId',
+          'generationKwh',
+          'consumptionKwh',
+          'exportKwh',
+          'importKwh',
+          'peakPowerKw',
+          'weatherPotentialKwh',
+          'performanceRatioPct',
+          'hasSmartMeter',
+          'syncSource',
+          'recordedAtIso',
+          'visibility',
+          'ownerId',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidDateKey(data.dateKey) &&
+        data.dateKey == dateKey &&
+        isValidId(data.plantId) &&
+        data.plantId == plantId &&
+        data.generationKwh is number &&
+        data.generationKwh >= 0 &&
+        data.generationKwh <= 100000 &&
+        (!('consumptionKwh' in data) || (data.consumptionKwh is number && data.consumptionKwh >= 0 && data.consumptionKwh <= 100000)) &&
+        (!('exportKwh' in data) || (data.exportKwh is number && data.exportKwh >= 0 && data.exportKwh <= 100000)) &&
+        (!('importKwh' in data) || (data.importKwh is number && data.importKwh >= 0 && data.importKwh <= 100000)) &&
+        (!('peakPowerKw' in data) || (data.peakPowerKw is number && data.peakPowerKw >= 0 && data.peakPowerKw <= 10000)) &&
+        (!('weatherPotentialKwh' in data) || (data.weatherPotentialKwh is number && data.weatherPotentialKwh >= 0 && data.weatherPotentialKwh <= 100000)) &&
+        (!('performanceRatioPct' in data) || (data.performanceRatioPct is number && data.performanceRatioPct >= 0 && data.performanceRatioPct <= 250)) &&
+        data.hasSmartMeter is bool &&
+        isValidSyncSource(data.syncSource) &&
+        data.recordedAtIso is string &&
+        data.recordedAtIso.size() >= 1 &&
+        data.recordedAtIso.size() <= 40 &&
+        data.visibility is string &&
+        data.visibility.size() <= 16 &&
+        data.visibility == 'public' &&
+        isValidId(data.ownerId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isImmutableDailyLogPreserved() {
+      return incoming().dateKey == existing().dateKey &&
+        incoming().plantId == existing().plantId &&
+        incoming().visibility == existing().visibility &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt;
+    }
+
+    // Master Gate helper for /inverter_plants/{plantId}/daily_logs/{dateKey}
+    function isParentPlantOwnerOrAdmin(plantId) {
+      let parentPath = /databases/$(database)/documents/inverter_plants/$(plantId);
+      return exists(parentPath) &&
+        (get(parentPath).data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // --- Collection 1: Shared Cross-Browser USC History ---
+    match /usc_history/{entryId} {
+      allow get: if isValidId(entryId) && existing().visibility == 'public';
+      allow list: if existing().visibility == 'public';
+
+      allow create: if isVerifiedUser() &&
+        isValidId(entryId) &&
+        isValidUscHistoryEntry(incoming(), entryId) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(entryId) &&
+        isValidUscHistoryEntry(incoming(), entryId) &&
+        isImmutableUscFieldsPreserved() &&
+        incoming().updatedAt == request.time &&
+        (
+          (
+            (existing().ownerId == request.auth.uid || isAdmin()) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'consumerName',
+              'discomShortName',
+              'discomId',
+              'stateName',
+              'sanctionedLoadKw',
+              'avgMonthlyUnits',
+              'avgMonthlyBill',
+              'monthsCount',
+              'verifiedMonthsCount',
+              'lastFetchedAtIst',
+              'timestampIso',
+              'months',
+              'updatedAt'
+            ])
+          ) ||
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'consumerName',
+              'sanctionedLoadKw',
+              'avgMonthlyUnits',
+              'avgMonthlyBill',
+              'monthsCount',
+              'verifiedMonthsCount',
+              'lastFetchedAtIst',
+              'timestampIso',
+              'months',
+              'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(entryId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // --- Collection 2: Solar Inverter Plants & Latest Synced Telemetry ---
+    match /inverter_plants/{plantId} {
+      allow get: if isValidId(plantId) && existing().visibility == 'public';
+      allow list: if existing().visibility == 'public';
+
+      allow create: if isVerifiedUser() &&
+        isValidId(plantId) &&
+        isValidInverterPlant(incoming(), plantId) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(plantId) &&
+        isValidInverterPlant(incoming(), plantId) &&
+        isImmutableInverterPlantPreserved() &&
+        incoming().updatedAt == request.time &&
+        (existing().ownerId == request.auth.uid || isAdmin()) &&
+        (
+          // Action 1: Full Plant Config + Telemetry Sync Update
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'brand',
+            'plantName',
+            'stationId',
+            'loggerSerial',
+            'installedCapacityKwp',
+            'exportTariffInr',
+            'meterMode',
+            'autoSyncMinutes',
+            'hasSyncedData',
+            'todayDateKey',
+            'todayGenKwh',
+            'livePowerKw',
+            'todayUsageKwh',
+            'todayExportKwh',
+            'todayImportKwh',
+            'lifetimeKwh',
+            'hasSmartMeter',
+            'syncSource',
+            'lastSyncedAtIso',
+            'lastSyncedAtIst',
+            'statusNote',
+            'updatedAt'
+          ]) ||
+          // Action 2: Telemetry-Only Snapshot Refresh
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'hasSyncedData',
+            'todayDateKey',
+            'todayGenKwh',
+            'livePowerKw',
+            'todayUsageKwh',
+            'todayExportKwh',
+            'todayImportKwh',
+            'lifetimeKwh',
+            'hasSmartMeter',
+            'syncSource',
+            'lastSyncedAtIso',
+            'lastSyncedAtIst',
+            'statusNote',
+            'updatedAt'
+          ])
+        );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(plantId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+
+      // --- Subcollection 2a: Date-Keyed Daily Generation Logs (Master Gate Protected) ---
+      match /daily_logs/{dateKey} {
+        allow get: if isValidId(plantId) && isValidDateKey(dateKey) && existing().visibility == 'public';
+        allow list: if existing().visibility == 'public';
+
+        allow create: if isVerifiedUser() &&
+          isValidId(plantId) &&
+          isValidDateKey(dateKey) &&
+          isValidInverterDailyLog(incoming(), plantId, dateKey) &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isParentPlantOwnerOrAdmin(plantId);
+
+        allow update: if isVerifiedUser() &&
+          isValidId(plantId) &&
+          isValidDateKey(dateKey) &&
+          isValidInverterDailyLog(incoming(), plantId, dateKey) &&
+          isImmutableDailyLogPreserved() &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'generationKwh',
+            'consumptionKwh',
+            'exportKwh',
+            'importKwh',
+            'peakPowerKw',
+            'weatherPotentialKwh',
+            'performanceRatioPct',
+            'hasSmartMeter',
+            'syncSource',
+            'recordedAtIso',
+            'updatedAt'
+          ]) &&
+          isParentPlantOwnerOrAdmin(plantId);
+
+        allow delete: if isVerifiedUser() &&
+          isValidId(plantId) &&
+          isValidDateKey(dateKey) &&
+          isParentPlantOwnerOrAdmin(plantId);
+      }
+    }
+  }
+}

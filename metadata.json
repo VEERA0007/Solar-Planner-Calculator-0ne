@@ -1,0 +1,11 @@
+{
+  "name": "Remix Solar Planner \u0026 Calculator",
+  "description": "Professional solar energy planning, sizing calculations, appliance analysis, shadow tracking, financial return estimation, and system maintenance manager with full Android Jetpack Compose codebase.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
