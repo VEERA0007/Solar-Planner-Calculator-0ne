@@ -25,12 +25,12 @@ jobs:
 
       - name: Install dependencies & build web bundle
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Add Capacitor Android & sync web assets
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android
           if [ ! -f "capacitor.config.json" ] && [ ! -f "capacitor.config.ts" ]; then
             npx cap init "SolarPlannerCalculator" "com.solarplanner.app" --web-dir dist
           fi
