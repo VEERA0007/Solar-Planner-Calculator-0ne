@@ -1,0 +1,146 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Leaflet map overrides */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+  z-index: 1;
+}
+
+.leaflet-div-icon,
+.custom-vertex-handle,
+.custom-pitch-overlay-badge {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-control-zoom {
+  display: none !important; /* using custom modern controls matching screenshot */
+}
+
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  padding: 0 4px !important;
+}
+
+/* Smooth theme transition */
+html, body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Custom sleek scrollbar for night and day */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+@keyframes cloudDriftSlow {
+  0% {
+    transform: translateX(-120px);
+  }
+  100% {
+    transform: translateX(1260px);
+  }
+}
+
+@keyframes cloudDriftFast {
+  0% {
+    transform: translateX(-180px);
+  }
+  100% {
+    transform: translateX(1300px);
+  }
+}
+
+@keyframes photonStream {
+  0% {
+    opacity: 0.1;
+    transform: translateY(-8px) scale(0.8);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(0px) scale(1);
+  }
+  100% {
+    opacity: 0.1;
+    transform: translateY(8px) scale(0.8);
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes panelGleam {
+  0% {
+    transform: translateX(-150%) skewX(-25deg);
+  }
+  30%, 100% {
+    transform: translateX(250%) skewX(-25deg);
+  }
+}
+
+.animate-cloud-slow {
+  animation: cloudDriftSlow 65s linear infinite;
+}
+
+.animate-cloud-fast {
+  animation: cloudDriftFast 40s linear infinite;
+}
+
+.animate-float-gentle {
+  animation: floatGentle 4s ease-in-out infinite;
+}
+
+.animate-panel-gleam {
+  animation: panelGleam 6s ease-in-out infinite;
+}
+
